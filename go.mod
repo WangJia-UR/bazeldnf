@@ -28,4 +28,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/sassoftware/go-rpmutils v0.2.0 => github.com/rmohr/go-rpmutils v0.1.2-0.20201215123907-5acf7436c00d
+replace github.com/sassoftware/go-rpmutils v0.2.0 => github.com/malt3/go-rpmutils v0.0.0-20230810164034-3fa3c6cdda0c
