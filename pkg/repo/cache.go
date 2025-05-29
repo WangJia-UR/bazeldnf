@@ -13,6 +13,7 @@ import (
 	"github.com/rmohr/bazeldnf/pkg/api"
 	"github.com/rmohr/bazeldnf/pkg/api/bazeldnf"
 	"github.com/rmohr/bazeldnf/pkg/rpm"
+	"github.com/sirupsen/logrus"
 )
 
 type CacheHelper struct {
@@ -75,12 +76,14 @@ func (r *CacheHelper) CurrentPrimary(repo *bazeldnf.Repository) (*api.Repository
 	primaryName := filepath.Base(primary.Location.Href)
 	file, err := r.OpenFromRepoDir(repo, primaryName)
 	if err != nil {
+		logrus.Error(fmt.Sprintf("Failed to open file %s: %v", primaryName, err))
 		return nil, err
 	}
 
 	defer file.Close()
 	reader, err := gzip.NewReader(file)
 	if err != nil {
+		logrus.Error(fmt.Sprintf("Failed to create gzip reader for file %s: %v", primaryName, err))
 		return nil, err
 	}
 	defer reader.Close()
@@ -88,6 +91,7 @@ func (r *CacheHelper) CurrentPrimary(repo *bazeldnf.Repository) (*api.Repository
 	repository := &api.Repository{}
 	err = xml.NewDecoder(reader).Decode(repository)
 	if err != nil {
+		logrus.Error(fmt.Sprintf("Failed to decode XML from file %s: %v", primaryName, err))
 		return nil, err
 	}
 
@@ -105,6 +109,7 @@ func (r *CacheHelper) CurrentPrimary(repo *bazeldnf.Repository) (*api.Repository
 			}
 			repo.Mirrors = urls
 		} else if !os.IsNotExist(err) {
+			logrus.Error(fmt.Sprintf("Failed to load metalink for repo %s: %v", repo.Name, err))
 			return nil, err
 		}
 	} else if len(repo.Mirrors) == 0 && repo.Baseurl != "" {
