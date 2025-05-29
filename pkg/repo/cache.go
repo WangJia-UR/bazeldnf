@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/klauspost/compress/zstd"
 	"github.com/rmohr/bazeldnf/pkg/api"
 	"github.com/rmohr/bazeldnf/pkg/api/bazeldnf"
 	"github.com/rmohr/bazeldnf/pkg/rpm"
@@ -81,12 +82,27 @@ func (r *CacheHelper) CurrentPrimary(repo *bazeldnf.Repository) (*api.Repository
 	}
 
 	defer file.Close()
-	reader, err := gzip.NewReader(file)
-	if err != nil {
-		logrus.Error(fmt.Sprintf("Failed to create gzip reader for file %s: %v", primaryName, err))
-		return nil, err
+
+	var reader io.Reader
+	if strings.HasSuffix(primaryName, ".gz") {
+		gzReader, err := gzip.NewReader(file)
+		if err != nil {
+			logrus.Error(fmt.Sprintf("Failed to create gzip reader for file %s: %v", primaryName, err))
+			return nil, err
+		}
+		defer gzReader.Close()
+		reader = gzReader
+	} else if strings.HasSuffix(primaryName, ".zst") {
+		decoder, err := zstd.NewReader(file)
+		if err != nil {
+			logrus.Error(fmt.Sprintf("Failed to create zstd reader for file %s: %v", primaryName, err))
+			return nil, err
+		}
+		defer decoder.Close()
+		reader = decoder
+	} else {
+		return nil, fmt.Errorf("unsupported file format for %s", primaryName)
 	}
-	defer reader.Close()
 
 	repository := &api.Repository{}
 	err = xml.NewDecoder(reader).Decode(repository)
