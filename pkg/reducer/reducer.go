@@ -29,11 +29,13 @@ func (r *RepoReducer) Load() error {
 		repoFile := &api.Repository{}
 		f, err := os.Open(rpmrepo)
 		if err != nil {
+			logrus.Error(fmt.Sprintf("Failed to open file: %s", rpmrepo))
 			return err
 		}
 		defer f.Close()
 		err = xml.NewDecoder(f).Decode(repoFile)
 		if err != nil {
+			logrus.Error(fmt.Sprintf("Failed to decode XML from file: %s", rpmrepo))
 			return err
 		}
 		for i, p := range repoFile.Packages {
@@ -45,6 +47,7 @@ func (r *RepoReducer) Load() error {
 	}
 	repos, err := r.cacheHelper.CurrentPrimaries(r.repos, r.arch)
 	if err != nil {
+		logrus.Error(fmt.Sprintf("Failed to get current primaries: %v", err))
 		return err
 	}
 	for _, rpmrepo := range repos {
