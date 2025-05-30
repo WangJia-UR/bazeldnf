@@ -91,7 +91,9 @@ func (r *RepoReducer) Resolve(packages []string) (matched []string, involved []*
 		var candidates []*api.Package
 		for i, p := range r.packages {
 			if strings.HasPrefix(p.String(), req) {
+				logrus.Debug(fmt.Sprintf("Found package %s which matches %s", p.String(), req))
 				if strings.HasPrefix(req, p.Name) {
+					logrus.Debug(fmt.Sprintf("Package %s matches %s", p.String(), req))
 					if !found || len(p.Name) < len(name) {
 						candidates = []*api.Package{&r.packages[i]}
 						name = p.Name
@@ -99,7 +101,11 @@ func (r *RepoReducer) Resolve(packages []string) (matched []string, involved []*
 					} else if p.Name == name {
 						candidates = append(candidates, &r.packages[i])
 					}
+				} else {
+					logrus.Debug(fmt.Sprintf("Package %s matches %s but is not a prefix", p.String(), req))
 				}
+			} else {
+				logrus.Debug(fmt.Sprintf("Package %s does not match %s", p.String(), req))
 			}
 		}
 		if !found {
