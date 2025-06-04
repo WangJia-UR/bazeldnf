@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"os"
 	"regexp"
 	"sort"
 	"strconv"
@@ -309,6 +310,37 @@ func (res *Resolver) Resolve() (install []*api.Package, excluded []*api.Package,
 
 	logrus.Info("Solving the Partial weighted MAXSAT problem.")
 	solution := s.Optimal(nil, nil)
+	// Print the solution
+	logrus.Infof("Solution found with status %s and weight %d.", solution.Status, solution.Weight)
+
+	if solution.Status.String() == "UNSAT" {
+		logrus.Info("No solution found, trying to find MUS.")
+		//mus, err := res.MUS()
+		//if err != nil {
+		//	return nil, nil, nil, fmt.Errorf("failed to find MUS: %w", err)
+		//}
+		//if mus == nil {
+		//	logrus.Info("No MUS found.")
+		//	return nil, nil, nil, fmt.Errorf("no MUS found")
+		//}
+		//// Print the MUS
+		//logrus.Infof("MUS found with %d clauses.", len(mus.Clauses))
+		//for _, clause := range mus.Clauses {
+		//	clauseVars := []string{}
+		//	for _, v := range clause {
+		//		if pkgName, exists := satVars.satToPkg[strconv.Itoa(v)]; exists {
+		//			clauseVars = append(clauseVars, fmt.Sprintf("%s(%s)", res.vars[pkgName].Package.String(), res.vars[pkgName].Context.Provides))
+		//		} else {
+		//			clauseVars = append(clauseVars, fmt.Sprintf("x%d", v))
+		//		}
+		//	}
+		//	logrus.Infof("Clause: %s", strings.Join(clauseVars, " OR "))
+		//}
+		// Export the MUS to a file
+		if err := res.exportCNF("mus.cnf"); err != nil {
+			return nil, nil, nil, fmt.Errorf("failed to export MUS: %w", err)
+		}
+	}
 
 	if solution.Status.String() == "SAT" {
 		logrus.Infof("Solution with weight %v found.", solution.Weight)
@@ -356,8 +388,10 @@ func (res *Resolver) MUS() (mus *explain.Problem, err error) {
 
 	err = bf.Dimacs(bf.And(res.ands...), w)
 	if err != nil {
+		w.Close()
 		return nil, err
 	}
+	w.Close()
 	problem, err := explain.ParseCNF(r)
 	if err != nil {
 		return nil, err
@@ -572,10 +606,19 @@ type ConversionVars struct {
 	pkgToSat map[string]string
 }
 
-// absInt returns the absolute value of an int.
-func absInt(x int) int {
-	if x < 0 {
-		return -x
+func (res *Resolver) exportCNF(filename string) error {
+	f, err := os.Create(filename)
+	if err != nil {
+		logrus.Errorf("无法创建 CNF 文件: %v", err)
+		return err
 	}
-	return x
+	defer f.Close()
+	err = bf.Dimacs(bf.And(res.ands...), f)
+	if err != nil {
+		logrus.Errorf("无法写入 CNF 文件: %v", err)
+		return err
+	}
+
+	logrus.Infof("已将 SAT 问题导出为 %s 文件", filename)
+	return nil
 }
