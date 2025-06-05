@@ -169,9 +169,20 @@ func (r *Resolver) LoadInvolvedPackages(packages []*api.Package, ignoreRegex []s
 		pkgVar, resourceVars := r.explodePackageToVars(pkg)
 		r.packages[pkg.Name] = append(r.packages[pkg.Name], pkgVar)
 		r.pkgProvides[pkgVar.Context] = resourceVars
+		// Print generated package variables
+		logrus.Infof("Generated package variable: %v", pkgVar)
+		logrus.Infof("  Provides: %v", pkgVar.Context.Provides)
+		logrus.Infof("  Version: %v", pkgVar.Context.Version)
+		logrus.Infof("  SAT Variable: %v", pkgVar.satVarName)
+		logrus.Infof("  Package: %v", pkgVar.Package)
+		logrus.Infof("  Resource Version: %v", pkgVar.ResourceVersion)
 		for _, v := range resourceVars {
 			r.provides[v.Context.Provides] = append(r.provides[v.Context.Provides], v)
 			r.vars[v.satVarName] = v
+			// Print generated resource variables
+			logrus.Infof("Generated resource variable: %v", v)
+			logrus.Infof("  Context: %v", v.Context)
+			logrus.Infof("  SAT Variable: %v", v.satVarName)
 		}
 	}
 	// Print generated variables: r.packages, r.provides, r.vars, r.pkgProvides
@@ -285,8 +296,12 @@ func (res *Resolver) Resolve() (install []*api.Package, excluded []*api.Package,
 		scanner := bufio.NewScanner(satReader)
 		for scanner.Scan() {
 			line := scanner.Text()
+			// Print the line
+			logrus.Debugf("Processing line: %s", line)
 			if strings.HasPrefix(line, "c") {
 				match := rex.FindStringSubmatch(line)
+				// Print length of match
+				logrus.Debugf("Match length: %d", len(match))
 				if len(match) == 3 {
 					pkgVar := match[1]
 					satVar := match[2]
@@ -296,6 +311,9 @@ func (res *Resolver) Resolve() (install []*api.Package, excluded []*api.Package,
 						pwMaxSatErrChan <- err
 						return
 					}
+					// Print the package variable and SAT variable
+					logrus.Debugf("Package variable: %s, SAT variable: %s", pkgVar, satVar)
+					logrus.Debugf("Package: %s, Provides: %s", res.vars[pkgVar].Package.String(), res.vars[pkgVar].Context.Provides)
 				}
 			} else if strings.HasPrefix(line, "p") {
 				line = strings.Replace(line, "p cnf", "p wcnf", 1) + " 2000"

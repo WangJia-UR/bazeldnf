@@ -37,7 +37,7 @@ func NewRpmTreeCmd() *cobra.Command {
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, required []string) error {
 			writeToMacro := rpmtreeopts.toMacro != ""
-
+			logrus.SetLevel(logrus.DebugLevel)
 			repos, err := repo.LoadRepoFiles(rpmtreeopts.repofiles)
 			if err != nil {
 				return err
