@@ -188,6 +188,37 @@ func (r *Resolver) LoadInvolvedPackages(packages []*api.Package, ignoreRegex []s
 			logrus.Infof("  Resource Version: %v", pkgVar.ResourceVersion)
 		}
 	}
+	logrus.Infof("Provides:")
+	for k, v := range r.provides {
+		logrus.Infof("Provides: %v", k)
+		for _, resVar := range v {
+			logrus.Infof("  %v", resVar)
+			logrus.Infof("  Context: %v", resVar.Context)
+			logrus.Infof("  SAT Variable: %v", resVar.satVarName)
+			logrus.Infof("  Package: %v", resVar.Package)
+			logrus.Infof("  Resource Version: %v", resVar.ResourceVersion)
+		}
+	}
+	logrus.Infof("Package Provides:")
+	for k, v := range r.pkgProvides {
+		logrus.Infof("Package: %v", k)
+		for _, resVar := range v {
+			logrus.Infof("  %v", resVar)
+			logrus.Infof("  Context: %v", resVar.Context)
+			logrus.Infof("  SAT Variable: %v", resVar.satVarName)
+			logrus.Infof("  Package: %v", resVar.Package)
+			logrus.Infof("  Resource Version: %v", resVar.ResourceVersion)
+		}
+	}
+	logrus.Infof("Variables:")
+	for k, v := range r.vars {
+		logrus.Infof("Variable: %v", k)
+		logrus.Infof("  %v", v)
+		logrus.Infof("  Context: %v", v.Context)
+		logrus.Infof("  SAT Variable: %v", v.satVarName)
+		logrus.Infof("  Package: %v", v.Package)
+		logrus.Infof("  Resource Version: %v", v.ResourceVersion)
+	}
 	for x, _ := range r.packages {
 		sort.SliceStable(r.packages[x], func(i, j int) bool {
 			return rpm.Compare(r.packages[x][i].Package.Version, r.packages[x][j].Package.Version) < 0
