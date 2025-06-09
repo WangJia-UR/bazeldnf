@@ -109,10 +109,6 @@ func (r *Resolver) ticket() string {
 // expressions which denoe packages which should be taken into account for solving the problem, but they
 // should then be ignored together with their requirements in the provided list of installed packages.
 func (r *Resolver) LoadInvolvedPackages(packages []*api.Package, ignoreRegex []string) error {
-	// Print initial involved packages name
-	for _, pkg := range packages {
-		logrus.Infof("Involved package: %v", pkg.String())
-	}
 	// Deduplicate and detect excludes
 	deduplicated := map[string]*api.Package{}
 	for i, pkg := range packages {
@@ -139,11 +135,7 @@ func (r *Resolver) LoadInvolvedPackages(packages []*api.Package, ignoreRegex []s
 		reducer.FixPackages(deduplicated[k])
 		packages = append(packages, deduplicated[k])
 	}
-	// Print deduplicated packages name
-	logrus.Infof("Deduplicated packages:")
-	for _, pkg := range packages {
-		logrus.Infof("Deduplicated package: %v", pkg.String())
-	}
+
 	// Create an index to pick the best candidates
 	for _, pkg := range packages {
 		if r.bestPackages[pkg.Name] == nil {
@@ -157,11 +149,6 @@ func (r *Resolver) LoadInvolvedPackages(packages []*api.Package, ignoreRegex []s
 		packages = nil
 		for _, v := range r.bestPackages {
 			packages = append(packages, v)
-		}
-		// Print best packages name
-		logrus.Infof("Best packages:")
-		for _, pkg := range packages {
-			logrus.Infof("Best package: %v", pkg.String())
 		}
 	}
 	// Generate variables
@@ -185,51 +172,7 @@ func (r *Resolver) LoadInvolvedPackages(packages []*api.Package, ignoreRegex []s
 			logrus.Infof("  SAT Variable: %v", v.satVarName)
 		}
 	}
-	// Print generated variables: r.packages, r.provides, r.vars, r.pkgProvides
-	logrus.Infof("Generated variables:")
-	logrus.Infof("Packages:")
-	for k, v := range r.packages {
-		logrus.Infof("Package: %v", k)
-		for _, pkgVar := range v {
-			logrus.Infof("  %v", pkgVar)
-			logrus.Infof("  Provides: %v", pkgVar.Context.Provides)
-			logrus.Infof("  Version: %v", pkgVar.Context.Version)
-			logrus.Infof("  SAT Variable: %v", pkgVar.satVarName)
-			logrus.Infof("  Package: %v", pkgVar.Package)
-			logrus.Infof("  Resource Version: %v", pkgVar.ResourceVersion)
-		}
-	}
-	logrus.Infof("Provides:")
-	for k, v := range r.provides {
-		logrus.Infof("Provides: %v", k)
-		for _, resVar := range v {
-			logrus.Infof("  %v", resVar)
-			logrus.Infof("  Context: %v", resVar.Context)
-			logrus.Infof("  SAT Variable: %v", resVar.satVarName)
-			logrus.Infof("  Package: %v", resVar.Package)
-			logrus.Infof("  Resource Version: %v", resVar.ResourceVersion)
-		}
-	}
-	logrus.Infof("Package Provides:")
-	for k, v := range r.pkgProvides {
-		logrus.Infof("Package: %v", k)
-		for _, resVar := range v {
-			logrus.Infof("  %v", resVar)
-			logrus.Infof("  Context: %v", resVar.Context)
-			logrus.Infof("  SAT Variable: %v", resVar.satVarName)
-			logrus.Infof("  Package: %v", resVar.Package)
-			logrus.Infof("  Resource Version: %v", resVar.ResourceVersion)
-		}
-	}
-	logrus.Infof("Variables:")
-	for k, v := range r.vars {
-		logrus.Infof("Variable: %v", k)
-		logrus.Infof("  %v", v)
-		logrus.Infof("  Context: %v", v.Context)
-		logrus.Infof("  SAT Variable: %v", v.satVarName)
-		logrus.Infof("  Package: %v", v.Package)
-		logrus.Infof("  Resource Version: %v", v.ResourceVersion)
-	}
+
 	for x, _ := range r.packages {
 		sort.SliceStable(r.packages[x], func(i, j int) bool {
 			return rpm.Compare(r.packages[x][i].Package.Version, r.packages[x][j].Package.Version) < 0
@@ -523,7 +466,6 @@ func (r *Resolver) explodePackageRequires(pkgVar *Var) bf.Formula {
 			uniqueVars = append(uniqueVars, s.satVarName)
 		}
 		bfunique = bf.And(bf.Unique(uniqueVars...), bfunique)
-		logrus.Infof("Added requirement %s to package %s", req.Name, pkgVar.Package.String())
 	}
 	return bfunique
 }
@@ -534,13 +476,11 @@ func (r *Resolver) explodePackageConflicts(pkgVar *Var) bf.Formula {
 		conflicts, err := r.explodeSingleRequires(req, r.provides[req.Name])
 		if err != nil {
 			// if a conflicting resource does not exist, we don't care
-			logrus.Infof("%s does not conflict with itself", pkgVar.Package.String())
 			continue
 		}
 		for _, s := range conflicts {
 			if s.Package == pkgVar.Package {
 				// don't conflict with yourself
-				logrus.Infof("%s does not conflict with %s", s.Package.String(), pkgVar.Package.String())
 				continue
 			}
 			if !strings.HasPrefix(s.Package.Name, "fedora-release") && !strings.HasPrefix(pkgVar.Package.String(), "fedora-release") {
